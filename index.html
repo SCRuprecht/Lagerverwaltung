@@ -53,13 +53,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',
 .sorte-results{display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;max-height:280px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.1);z-index:20;}
 .sorte-results.open{display:block;}
 .sorte-result-item{padding:8px 12px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;}
+.srobstart{font-size:10px;background:var(--brand-bg);color:var(--brand-dark);border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+.obstart-filter{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.obstart-chip{background:#fff;border:1px solid var(--line);color:var(--ink-soft);border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+.obstart-chip.active{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:500;}
+.obstart-chip:hover:not(.active){border-color:var(--brand);color:var(--brand-dark);}
 .sorte-result-item:hover{background:var(--brand-bg);}
 .sorte-result-item .srname{color:var(--ink);}
 .sorte-result-item .srunterlage{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:12px;}
 .sorte-result-empty{padding:10px 12px;font-size:12px;color:var(--ink-soft);font-style:italic;}
-.cell-edit{font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:none;background:transparent;color:var(--ink);border-bottom:1px solid transparent;padding:3px 2px;width:100%;box-sizing:border-box;}
+.cell-edit{font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:none;background:transparent;color:var(--ink);border-bottom:1px solid transparent;padding:3px 2px;width:100%;min-width:130px;box-sizing:border-box;}
 .cell-edit:hover,.cell-edit:focus{border-bottom:1px solid var(--line);outline:none;background:#FBFAF5;}
-.num-edit{text-align:right;font-family:'IBM Plex Mono',monospace;}
+.num-edit{text-align:right;font-family:'IBM Plex Mono',monospace;min-width:80px;}
 .qual-lines-row{display:flex;flex-direction:column;gap:6px;}
 .qual-line{display:flex;gap:6px;align-items:center;}
 .add-qline-btn{background:none;border:none;color:var(--brand);font-size:11px;cursor:pointer;text-decoration:underline;padding:2px 0;display:block;margin-top:2px;}
@@ -116,13 +121,17 @@ select,input[type=text],input[type=number],input[type=date]{font-family:'IBM Ple
 .status-Fix{background:var(--green-bg);color:#22432D;}
 .status-Geliefert{background:#E5E2D8;color:#4A4638;}
 .status-Warteliste{background:#E7E1F2;color:#4A3B6B;}
-.status-select{font-size:11px;padding:3px 22px 3px 9px;border-radius:20px;font-weight:500;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 7px center;background-size:9px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23635C54'/></svg>");}
+.status-select{font-size:12px;padding:4px 26px 4px 10px;border-radius:20px;font-weight:500;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 8px center;background-size:9px;min-width:150px;width:auto;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23635C54'/></svg>");}
 .geliefert-check{display:block;font-size:10px;color:var(--ink-soft);margin-top:4px;cursor:pointer;user-select:none;}
 .geliefert-check input{margin-right:3px;vertical-align:middle;}
 .del-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;}
 .del-btn:hover{color:var(--rust);}
 .add-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;}
 .add-row input,.add-row select{flex:1;min-width:90px;}
+#newKunde{flex:1.8;min-width:170px;}
+#newNotiz{flex:1.6;min-width:150px;}
+#newStatus{flex:0.8;min-width:130px;}
+#newDatum{flex:0.7;min-width:130px;}
 .add-btn{background:var(--brand);color:#FCFBF7;border:none;border-radius:4px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-weight:500;}
 .add-btn:hover{background:var(--brand-dark);}
 .note{font-size:12px;color:var(--ink-soft);margin-top:10px;line-height:1.6;}
@@ -229,6 +238,7 @@ tr.warn-row td{background:var(--rust-bg);}
   </div>
 
   <div class="view active" id="viewSorte">
+    <div class="obstart-filter" id="obstartFilter"></div>
     <div class="sorte-picker">
       <div class="sorte-search-wrap">
         <input type="text" id="sorteSearch" placeholder="Sorte suchen…" autocomplete="off" oninput="renderSorteResults(this.value)" onfocus="renderSorteResults(this.value)">
@@ -241,10 +251,14 @@ tr.warn-row td{background:var(--rust-bg);}
     <div class="new-sorte-form" id="newSorteForm" style="display:none">
       <input type="text" id="nsName" placeholder="Sortenname (z. B. Elstar)">
       <input type="text" id="nsUnterlage" placeholder="Unterlage (z. B. M9)">
+      <input type="text" id="nsObstart" placeholder="Obstart (z. B. Apfel)" list="obstartOptions" value="Apfel">
       <input type="number" min="0" id="nsVeredelt" placeholder="veredelt (Stk.)">
       <button class="add-btn" onclick="createSorte()">Anlegen</button>
       <span class="note" style="margin:0">Startet mit 7+, 5+, 3+ – weitere Qualitäten könnt ihr danach ergänzen.</span>
     </div>
+    <datalist id="obstartOptions">
+      <option value="Apfel"><option value="Birne"><option value="Zwetschke"><option value="Kirsche"><option value="Marille"><option value="Quitte">
+    </datalist>
 
     <div class="import-row">
       <button class="import-btn" onclick="document.getElementById('sortierungFile').click()">Sortierung importieren (.xlsx)</button>
@@ -746,12 +760,13 @@ function toggleNewSorteForm(){
 function createSorte(){
   const name = document.getElementById('nsName').value.trim();
   const unterlage = document.getElementById('nsUnterlage').value.trim();
+  const obstart = document.getElementById('nsObstart').value.trim() || 'Apfel';
   const veredeltVal = document.getElementById('nsVeredelt').value;
   const veredelt = veredeltVal===''?null:Number(veredeltVal);
   if(!name){ return; }
   const id = 's' + Date.now();
   sorten.push({
-    id, name, unterlage, veredelt,
+    id, name, unterlage, obstart, veredelt,
     qualitaeten: ['7+','5+','3+'],
     geschaetzt: {'7+':0,'5+':0,'3+':0},
     tatsaechlich: {'7+':null,'5+':null,'3+':null},
@@ -759,6 +774,7 @@ function createSorte(){
   });
   document.getElementById('nsName').value='';
   document.getElementById('nsUnterlage').value='';
+  document.getElementById('nsObstart').value='Apfel';
   document.getElementById('nsVeredelt').value='';
   toggleNewSorteForm();
   activeSorteId = id;
@@ -838,6 +854,7 @@ function renderSorteCard(){
     <div class="sorte-meta">
       <input type="text" value="${sorte.name}" onchange="renameSorte(this.value)">
       <input class="unterlage" type="text" value="${sorte.unterlage||''}" onchange="reunterlage(this.value)">
+      <span class="veredelt-wrap"><span class="veredelt-label">Obstart:</span><input class="unterlage" list="obstartOptions" type="text" value="${getObstart(sorte)}" onchange="reobstart(this.value)"></span>
       <span class="veredelt-wrap"><span class="veredelt-label">Zwischenveredelung:</span><input class="unterlage" type="text" value="${sorte.zwischenveredelung||''}" placeholder="z. B. keine" onchange="rezwischenveredelung(this.value)"></span>
       <span class="veredelt-wrap"><span class="veredelt-label">veredelt:</span><input class="unterlage" type="number" min="0" value="${sorte.veredelt ?? ''}" placeholder="Stk." onchange="reveredelt(this.value)"></span>
     </div>
@@ -1024,20 +1041,43 @@ function renderPicker(){
   if(input && document.activeElement !== input){
     input.value = sorte ? displayName(sorte) : '';
   }
+  renderObstartFilter();
 }
 
+let obstartFilter = 'Alle';
+
+function getObstart(s){ return s.obstart || 'Apfel'; }
+
 function displayName(s){
-  return s.unterlage ? `${s.name} · ${s.unterlage}` : s.name;
+  const base = s.unterlage ? `${s.name} · ${s.unterlage}` : s.name;
+  return getObstart(s)!=='Apfel' ? `${base} (${getObstart(s)})` : base;
+}
+
+function renderObstartFilter(){
+  const box = document.getElementById('obstartFilter');
+  if(!box) return;
+  const arten = Array.from(new Set(sorten.map(getObstart))).sort((a,b)=>a.localeCompare(b,'de'));
+  const chips = ['Alle', ...arten];
+  if(!chips.includes(obstartFilter)) obstartFilter = 'Alle';
+  box.innerHTML = chips.map(a=>
+    `<button type="button" class="obstart-chip${a===obstartFilter?' active':''}" onmousedown="event.preventDefault(); setObstartFilter('${a}')">${a}</button>`
+  ).join('');
+}
+function setObstartFilter(a){
+  obstartFilter = a;
+  renderObstartFilter();
+  renderSorteResults(document.getElementById('sorteSearch').value);
 }
 
 function renderSorteResults(query){
   const box = document.getElementById('sorteResults');
   const q = (query||'').trim().toLowerCase();
   const matches = sorten
-    .filter(s => !q || s.name.toLowerCase().includes(q) || (s.unterlage||'').toLowerCase().includes(q))
+    .filter(s => obstartFilter==='Alle' || getObstart(s)===obstartFilter)
+    .filter(s => !q || s.name.toLowerCase().includes(q) || (s.unterlage||'').toLowerCase().includes(q) || getObstart(s).toLowerCase().includes(q))
     .sort((a,b)=>a.name.localeCompare(b.name,'de') || (a.unterlage||'').localeCompare(b.unterlage||'','de'));
   box.innerHTML = matches.length
-    ? matches.map(s=>`<div class="sorte-result-item" onmousedown="selectSorte('${s.id}')"><span class="srname">${s.name}</span><span class="srunterlage">${s.unterlage||''}</span></div>`).join('')
+    ? matches.map(s=>`<div class="sorte-result-item" onmousedown="selectSorte('${s.id}')"><span class="srname">${s.name}${getObstart(s)!=='Apfel'?` <span class="srobstart">${getObstart(s)}</span>`:''}</span><span class="srunterlage">${s.unterlage||''}</span></div>`).join('')
     : `<div class="sorte-result-empty">Keine Sorte gefunden</div>`;
   box.classList.add('open');
 }
@@ -1076,6 +1116,7 @@ function renderAll(){ renderPicker(); renderSorteCard(); renderOrderCard(); rend
 
 function renameSorte(v){ getSorte().name=v; renderPicker(); save(); }
 function reunterlage(v){ getSorte().unterlage=v; save(); }
+function reobstart(v){ getSorte().obstart = v.trim() || 'Apfel'; renderPicker(); save(); }
 function rezwischenveredelung(v){ getSorte().zwischenveredelung=v; save(); }
 function reveredelt(v){ getSorte().veredelt = v===''?null:Number(v); save(); }
 function updateGeschaetzt(q,val){ getSorte().geschaetzt[q]= val===''?0:Number(val); renderSorteCard(); save(); }
