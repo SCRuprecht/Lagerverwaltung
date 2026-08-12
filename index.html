@@ -62,9 +62,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',
 .sorte-result-item .srname{color:var(--ink);}
 .sorte-result-item .srunterlage{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:12px;}
 .sorte-result-empty{padding:10px 12px;font-size:12px;color:var(--ink-soft);font-style:italic;}
-.cell-edit{font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:none;background:transparent;color:var(--ink);border-bottom:1px solid transparent;padding:3px 2px;width:100%;min-width:130px;box-sizing:border-box;}
+.cell-edit{font-family:'IBM Plex Sans',sans-serif;font-size:13px;border:none;background:transparent;color:var(--ink);border-bottom:1px solid transparent;padding:3px 2px;width:100%;min-width:90px;box-sizing:border-box;}
 .cell-edit:hover,.cell-edit:focus{border-bottom:1px solid var(--line);outline:none;background:#FBFAF5;}
-.num-edit{text-align:right;font-family:'IBM Plex Mono',monospace;min-width:80px;}
+.num-edit{text-align:right;font-family:'IBM Plex Mono',monospace;min-width:70px;}
+.kunde-cell{min-width:200px;}
+.qual-cell{min-width:64px;}
+.notiz-cell{min-width:120px;text-overflow:ellipsis;}
 .qual-lines-row{display:flex;flex-direction:column;gap:6px;}
 .qual-line{display:flex;gap:6px;align-items:center;}
 .add-qline-btn{background:none;border:none;color:var(--brand);font-size:11px;cursor:pointer;text-decoration:underline;padding:2px 0;display:block;margin-top:2px;}
@@ -113,7 +116,7 @@ tbody tr:first-child td{border-top:none;}
 .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.orders-table{min-width:760px;}
+.orders-table{min-width:820px;}
 th{text-align:left;font-weight:500;color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);padding:6px 8px;}
 td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
 td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
@@ -123,14 +126,14 @@ select,input[type=text],input[type=number],input[type=date]{font-family:'IBM Ple
 .status-Fix{background:var(--green-bg);color:#22432D;}
 .status-Geliefert{background:#E5E2D8;color:#4A4638;}
 .status-Warteliste{background:#E7E1F2;color:#4A3B6B;}
-.status-select{font-size:12px;padding:4px 26px 4px 10px;border-radius:20px;font-weight:500;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 8px center;background-size:9px;min-width:150px;width:auto;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23635C54'/></svg>");}
+.status-select{font-size:11px;padding:3px 22px 3px 8px;border-radius:20px;font-weight:500;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 7px center;background-size:8px;min-width:122px;width:auto;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23635C54'/></svg>");}
 .geliefert-check{display:block;font-size:10px;color:var(--ink-soft);margin-top:4px;cursor:pointer;user-select:none;}
 .geliefert-check input{margin-right:3px;vertical-align:middle;}
 .del-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;}
 .del-btn:hover{color:var(--rust);}
 .add-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;}
 .add-row input,.add-row select{flex:1;min-width:90px;}
-#newKunde{flex:1.8;min-width:170px;}
+#newKunde{flex:1.8;min-width:200px;}
 #newNotiz{flex:1.6;min-width:150px;}
 #newStatus{flex:0.8;min-width:130px;}
 #newDatum{flex:0.7;min-width:130px;}
@@ -1019,10 +1022,10 @@ function renderOrderCard(){
   document.getElementById('orderBody').innerHTML = groups.map(g => g.map((o, idx) => `
     <tr class="${idx===0?'group-start':''}">
       ${idx===0?`<td rowspan="${g.length}">
-        <input class="cell-edit" type="text" value="${o.kunde}" list="kundenListe" autocomplete="off" onchange="updateOrderGroup('${o.groupId}','kunde',this.value)">
+        <input class="cell-edit kunde-cell" type="text" value="${o.kunde}" list="kundenListe" autocomplete="off" onchange="updateOrderGroup('${o.groupId}','kunde',this.value)">
         <button class="add-qline-btn" onclick="addQualityLineToGroup('${o.groupId}')" title="weitere Qualität für diesen Kunden hinzufügen">+ Qualität</button>
       </td>`:''}
-      <td><select class="cell-edit" onchange="updateOrder(${o.id},'qualitaet',this.value)">${qualOptionsHtml(o.qualitaet)}</select></td>
+      <td><select class="cell-edit qual-cell" onchange="updateOrder(${o.id},'qualitaet',this.value)">${qualOptionsHtml(o.qualitaet)}</select></td>
       <td><input class="cell-edit num-edit" type="number" min="0" value="${o.menge}" onchange="updateOrder(${o.id},'menge',this.value)"></td>
       ${idx===0?`<td rowspan="${g.length}">
         <select class="cell-edit status-select status-${o.status}" onchange="setStatusGroup('${o.groupId}', this.value)">
@@ -1033,7 +1036,7 @@ function renderOrderCard(){
         ${o.status==='Fix'?`<label class="geliefert-check"><input type="checkbox" ${o.geliefert?'checked':''} onchange="toggleGelifertGroup('${o.groupId}')"> geliefert</label>`:''}
       </td>`:''}
       ${idx===0?`<td rowspan="${g.length}"><input class="cell-edit" type="date" value="${o.datum||''}" onchange="updateOrderGroup('${o.groupId}','datum',this.value)"></td>`:''}
-      ${idx===0?`<td rowspan="${g.length}"><input class="cell-edit" type="text" value="${o.notiz||''}" onchange="updateOrderGroup('${o.groupId}','notiz',this.value)"></td>`:''}
+      ${idx===0?`<td rowspan="${g.length}"><input class="cell-edit notiz-cell" type="text" value="${o.notiz||''}" title="${(o.notiz||'').replace(/"/g,'&quot;')}" onchange="updateOrderGroup('${o.groupId}','notiz',this.value)"></td>`:''}
       <td><button class="del-btn" onclick="deleteOrder(${o.id})" aria-label="Löschen">×</button></td>
     </tr>
   `).join('')).join('');
