@@ -112,6 +112,8 @@ tbody tr:first-child td{border-top:none;}
 .legend span{display:inline-flex;align-items:center;gap:5px;}
 .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.orders-table{min-width:760px;}
 th{text-align:left;font-weight:500;color:var(--ink-soft);font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);padding:6px 8px;}
 td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
 td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
@@ -978,10 +980,12 @@ function renderOrderCard(){
   card.innerHTML = `
     <h2>Aufträge &amp; Reservierungen</h2>
     ${kundenDatalist}
-    <table>
-      <thead><tr><th>Kunde</th><th>Qualität</th><th style="text-align:right">Menge</th><th>Status</th><th>Datum</th><th>Notiz</th><th></th></tr></thead>
-      <tbody id="orderBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="orders-table">
+        <thead><tr><th>Kunde</th><th>Qualität</th><th style="text-align:right">Menge</th><th>Status</th><th>Datum</th><th>Notiz</th><th></th></tr></thead>
+        <tbody id="orderBody"></tbody>
+      </table>
+    </div>
     <div class="add-row">
       <input type="text" id="newKunde" placeholder="Kunde" list="kundenListe" autocomplete="off">
       <div class="qual-lines-row" id="newQualLines">
