@@ -161,6 +161,8 @@ tr.warn-row td{background:var(--rust-bg);}
 .season-add-row{display:flex;gap:8px;margin-top:10px;}
 .season-add-row input{flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:5px;font-size:14px;font-family:'IBM Plex Sans',sans-serif;color:var(--ink);background:#fff;min-width:0;}
 .season-backup-row{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap;justify-content:center;}
+.backup-reminder{font-size:12px;color:var(--ink-soft);text-align:center;margin:12px 0 0;}
+.backup-reminder.due{color:var(--rust);font-weight:500;}
 .season-add-btn{background:var(--brand);color:#fff;border:none;border-radius:5px;padding:9px 14px;font-size:14px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
 .season-add-btn:hover{background:var(--brand-dark);}
 .confirm-overlay{position:fixed;inset:0;background:rgba(43,38,32,.45);display:flex;align-items:center;justify-content:center;z-index:1100;padding:20px;}
@@ -195,6 +197,7 @@ tr.warn-row td{background:var(--rust-bg);}
       <input type="text" id="newSeasonLabel" placeholder="z. B. 2027/28" onkeydown="if(event.key==='Enter') addSeason()">
       <button class="season-add-btn" onclick="addSeason()">+ Neu anlegen (leer)</button>
     </div>
+    <p class="backup-reminder" id="backupReminder"></p>
     <div class="season-backup-row">
       <button class="ghost-btn small-btn" onclick="testSupabaseConnection()">🔧 Verbindung testen</button>
       <button class="ghost-btn small-btn" onclick="exportAllBackup()">⬇ Alles sichern (alle Saisonen)</button>
@@ -376,6 +379,7 @@ async function undoLast(){
 }
 const KEY_SALT = 'obstbaumschule-v2-salt';
 const KEY_SEASONS = 'obstbaumschule-v2-saisonen';
+const KEY_LAST_BACKUP = 'obstbaumschule-v2-letzte-sicherung';
 function seasonSortenKey(id){ return `obstbaumschule-v2-sorten-${id}`; }
 function seasonOrdersKey(id){ return `obstbaumschule-v2-auftraege-${id}`; }
 function seasonIndexKey(id){ return `obstbaumschule-v2-index-${id}`; }
@@ -514,8 +518,24 @@ async function initSeasons(){
 
 function openSeasonGate(){
   renderSeasonList();
+  renderBackupReminder();
   document.getElementById('newSeasonLabel').value = '';
   document.getElementById('seasonGate').style.display = 'flex';
+}
+async function renderBackupReminder(){
+  const el = document.getElementById('backupReminder');
+  if(!el) return;
+  try{
+    const res = await window.storage.get(KEY_LAST_BACKUP);
+    const last = new Date(res.value);
+    const days = Math.floor((Date.now() - last.getTime()) / 86400000);
+    const text = days===0 ? 'heute' : days===1 ? 'vor 1 Tag' : `vor ${days} Tagen`;
+    el.textContent = `Letzte Sicherung: ${text}`;
+    el.className = 'backup-reminder' + (days>=7 ? ' due' : '');
+  }catch(e){
+    el.textContent = 'Noch keine Sicherung heruntergeladen';
+    el.className = 'backup-reminder due';
+  }
 }
 function renderSeasonList(){
   const box = document.getElementById('seasonList');
@@ -1372,6 +1392,8 @@ async function exportAllBackup(){
   URL.revokeObjectURL(url);
   const gesamtSorten = Object.values(seasonData).reduce((a,d)=>a+d.sorten.length,0);
   setImportStatus(`Sicherung heruntergeladen: ${seasons.length} Saisonen, ${gesamtSorten} Sorten insgesamt.`, true);
+  try{ await window.storage.set(KEY_LAST_BACKUP, new Date().toISOString()); }catch(e){}
+  renderBackupReminder();
 }
 
 function importAllBackup(file){
