@@ -976,6 +976,8 @@ function renderOrderCard(){
   const relevantOrders = orders.filter(o=>o.sorteId===sorte.id);
   const alleKunden = Array.from(new Set(orders.map(o=>o.kunde).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'de'));
   const kundenDatalist = `<datalist id="kundenListe">${alleKunden.map(k=>`<option value="${k}">`).join('')}</datalist>`;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const qualOptionsHtml = (selected)=>`
     <optgroup label="Hauptqualitäten">${sorte.qualitaeten.slice().sort(sortQualities).map(q=>`<option value="${q}" ${q===selected?'selected':''}>${q}</option>`).join('')}</optgroup>
     ${Object.keys(sorte.nebenqualitaeten||{}).length?`<optgroup label="Nebenqualitäten">${Object.keys(sorte.nebenqualitaeten).sort(sortQualities).map(q=>`<option value="${q}" ${q===selected?'selected':''}>${q}</option>`).join('')}</optgroup>`:''}
@@ -1003,7 +1005,7 @@ function renderOrderCard(){
         <option value="Fix">Fix / Auftrag</option>
         <option value="Warteliste">Warteliste</option>
       </select>
-      <input type="date" id="newDatum">
+      <input type="date" id="newDatum" value="${todayStr}">
       <input type="text" id="newNotiz" placeholder="Notiz (optional)">
       <button class="add-btn" onclick="addOrder()">Eintragen</button>
     </div>
