@@ -48,7 +48,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',
 .veredelt-label{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Sans',sans-serif;}
 .veredelt-wrap .unterlage{width:90px;}
 .sorte-search-wrap{position:relative;}
-#sorteSearch{font-family:'IBM Plex Sans',sans-serif;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:5px;width:260px;background:#fff;}
+#sorteSearch{font-family:'IBM Plex Sans',sans-serif;font-size:14px;padding:7px 30px 7px 10px;border:1px solid var(--line);border-radius:5px;width:260px;background:#fff;box-sizing:border-box;}
+.sorte-search-arrow{position:absolute;right:1px;top:1px;bottom:1px;width:26px;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:11px;border-radius:0 4px 4px 0;}
+.sorte-search-arrow:hover{background:var(--brand-bg);color:var(--brand-dark);}
 #sorteSearch:focus{outline:none;border-color:var(--brand);}
 .sorte-results{display:none;position:absolute;top:calc(100% + 4px);left:0;width:320px;max-height:280px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.1);z-index:20;}
 .sorte-results.open{display:block;}
@@ -246,7 +248,8 @@ tr.warn-row td{background:var(--rust-bg);}
     <div class="obstart-filter" id="obstartFilter"></div>
     <div class="sorte-picker">
       <div class="sorte-search-wrap">
-        <input type="text" id="sorteSearch" placeholder="Sorte suchen…" autocomplete="off" oninput="renderSorteResults(this.value)" onfocus="renderSorteResults(this.value)">
+        <input type="text" id="sorteSearch" placeholder="Sorte suchen…" autocomplete="off" oninput="renderSorteResults(this.value)" onfocus="this.select(); renderSorteResults('')">
+        <button type="button" class="sorte-search-arrow" onmousedown="event.preventDefault(); document.getElementById('sorteSearch').focus(); document.getElementById('sorteSearch').select(); renderSorteResults('');" aria-label="Sortenliste öffnen">▾</button>
         <div class="sorte-results" id="sorteResults"></div>
       </div>
       <button class="ghost-btn" onclick="toggleNewSorteForm()">+ Neue Sorte anlegen</button>
