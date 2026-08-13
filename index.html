@@ -144,6 +144,9 @@ select,input[type=text],input[type=number],input[type=date]{font-family:'IBM Ple
 .note{font-size:12px;color:var(--ink-soft);margin-top:10px;line-height:1.6;}
 .status-msg{font-size:12px;color:var(--ink-soft);}
 tr.warn-row td{background:var(--rust-bg);}
+tr.obstart-group-row td{background:var(--brand-bg);color:var(--brand-dark);font-family:'Fraunces',serif;font-weight:600;font-size:14px;padding:8px 8px;border-top:2px solid var(--brand);}
+.obstart-count{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:12px;color:var(--ink-soft);}
+tr.obstart-subtotal-row td{font-weight:600;border-top:1px solid var(--line);border-bottom:2px solid var(--line);color:var(--ink);}
 .new-sorte-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#FBFAF5;border:1px dashed var(--line);border-radius:6px;padding:14px;margin-bottom:18px;}
 .new-sorte-form input{min-width:150px;}
 .import-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
@@ -1102,7 +1105,7 @@ document.addEventListener('click', function(e){
 });
 
 function renderOverview(){
-  const rows = sorten.slice().sort((a,b)=>a.name.localeCompare(b.name,'de')).map(sorte=>{
+  const rows = sorten.map(sorte=>{
     let bestand=0, fix=0, res=0;
     sorte.qualitaeten.forEach(q=>{
       const s = sums(sorte,q);
@@ -1111,17 +1114,43 @@ function renderOverview(){
     const r = sumsRest(sorte);
     bestand += r.bestand; fix += r.fix; res += r.res;
     const frei = bestand - fix - res;
-    return {name:sorte.name, unterlage:sorte.unterlage, bestand, fix, res, frei};
+    return {name:sorte.name, unterlage:sorte.unterlage, obstart:getObstart(sorte), bestand, fix, res, frei};
   });
-  document.getElementById('overviewBody').innerHTML = rows.map(r=>`
-    <tr class="${r.frei<0?'warn-row':''}">
-      <td>${r.name}</td><td>${r.unterlage||''}</td>
-      <td class="num">${r.bestand.toLocaleString('de-AT')}</td>
-      <td class="num">${r.fix.toLocaleString('de-AT')}</td>
-      <td class="num">${r.res.toLocaleString('de-AT')}</td>
-      <td class="num ${r.frei<0?'warn':''}">${r.frei.toLocaleString('de-AT')}</td>
-    </tr>
-  `).join('');
+
+  const byObstart = new Map();
+  rows.forEach(r=>{
+    if(!byObstart.has(r.obstart)) byObstart.set(r.obstart, []);
+    byObstart.get(r.obstart).push(r);
+  });
+  const obstarten = Array.from(byObstart.keys()).sort((a,b)=>{
+    if(a==='Apfel') return -1;
+    if(b==='Apfel') return 1;
+    return a.localeCompare(b,'de');
+  });
+
+  document.getElementById('overviewBody').innerHTML = obstarten.map(art=>{
+    const gruppe = byObstart.get(art).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+    const sum = gruppe.reduce((acc,r)=>({bestand:acc.bestand+r.bestand, fix:acc.fix+r.fix, res:acc.res+r.res, frei:acc.frei+r.frei}), {bestand:0,fix:0,res:0,frei:0});
+    return `
+      <tr class="obstart-group-row"><td colspan="6">${art} <span class="obstart-count">(${gruppe.length} Sorten)</span></td></tr>
+      ${gruppe.map(r=>`
+        <tr class="${r.frei<0?'warn-row':''}">
+          <td>${r.name}</td><td>${r.unterlage||''}</td>
+          <td class="num">${r.bestand.toLocaleString('de-AT')}</td>
+          <td class="num">${r.fix.toLocaleString('de-AT')}</td>
+          <td class="num">${r.res.toLocaleString('de-AT')}</td>
+          <td class="num ${r.frei<0?'warn':''}">${r.frei.toLocaleString('de-AT')}</td>
+        </tr>
+      `).join('')}
+      <tr class="obstart-subtotal-row">
+        <td colspan="2">Zwischensumme ${art}</td>
+        <td class="num">${sum.bestand.toLocaleString('de-AT')}</td>
+        <td class="num">${sum.fix.toLocaleString('de-AT')}</td>
+        <td class="num">${sum.res.toLocaleString('de-AT')}</td>
+        <td class="num ${sum.frei<0?'warn':''}">${sum.frei.toLocaleString('de-AT')}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderAll(){ renderPicker(); renderSorteCard(); renderOrderCard(); renderOverview(); }
@@ -1345,7 +1374,21 @@ function setImportStatus(text, ok){
 }
 
 function exportOverviewXlsx(){
-  const sortedSorten = sorten.slice().sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  const sortByNameThenObstart = (a,b)=>a.name.localeCompare(b.name,'de');
+  const obstartOrder = (a,b)=>{
+    if(a==='Apfel') return -1;
+    if(b==='Apfel') return 1;
+    return a.localeCompare(b,'de');
+  };
+  const byObstart = new Map();
+  sorten.forEach(sorte=>{
+    const art = getObstart(sorte);
+    if(!byObstart.has(art)) byObstart.set(art, []);
+    byObstart.get(art).push(sorte);
+  });
+  const obstarten = Array.from(byObstart.keys()).sort(obstartOrder);
+  const sortedSorten = obstarten.flatMap(art => byObstart.get(art).slice().sort(sortByNameThenObstart));
+
   const seasonLabel = (seasons.find(s=>s.id===currentSeasonId)||{}).label || '';
 
   const perSorte = [];
@@ -1364,25 +1407,36 @@ function exportOverviewXlsx(){
       const frei = bestand - fix - res;
       if(frei > 0){ pairs[n] = frei; allQualities.add(n); }
     });
-    perSorte.push({sorte, pairs});
+    perSorte.push({sorte, pairs, obstart: getObstart(sorte)});
   });
 
   const qualityColumns = Array.from(allQualities).sort(sortQualities);
   const detailHeader = ['Sorte','Unterlage', ...qualityColumns];
   const detailRows2 = [detailHeader];
-  perSorte.forEach(({sorte,pairs})=>{
+  let currentArt = null;
+  perSorte.forEach(({sorte,pairs,obstart})=>{
+    if(obstart !== currentArt){
+      currentArt = obstart;
+      detailRows2.push([`— ${obstart} —`]);
+    }
     const row = [sorte.name, sorte.unterlage||''];
     qualityColumns.forEach(q=>{ row.push(pairs[q]!=null ? pairs[q] : ''); });
     detailRows2.push(row);
   });
 
   const summaryRows = [['Sorte','Unterlage','Bestand','Fix','Reserviert','Frei']];
-  sortedSorten.forEach(sorte=>{
-    let bestand=0, fix=0, res=0;
-    sorte.qualitaeten.forEach(q=>{ const s=sums(sorte,q); bestand+=s.bestand; fix+=s.fix; res+=s.res; });
-    const r = sumsRest(sorte);
-    bestand += r.bestand; fix += r.fix; res += r.res;
-    summaryRows.push([sorte.name, sorte.unterlage||'', bestand, fix, res, bestand-fix-res]);
+  obstarten.forEach(art=>{
+    summaryRows.push([`— ${art} —`]);
+    let sBestand=0, sFix=0, sRes=0;
+    byObstart.get(art).slice().sort(sortByNameThenObstart).forEach(sorte=>{
+      let bestand=0, fix=0, res=0;
+      sorte.qualitaeten.forEach(q=>{ const s=sums(sorte,q); bestand+=s.bestand; fix+=s.fix; res+=s.res; });
+      const r = sumsRest(sorte);
+      bestand += r.bestand; fix += r.fix; res += r.res;
+      summaryRows.push([sorte.name, sorte.unterlage||'', bestand, fix, res, bestand-fix-res]);
+      sBestand+=bestand; sFix+=fix; sRes+=res;
+    });
+    summaryRows.push([`Zwischensumme ${art}`, '', sBestand, sFix, sRes, sBestand-sFix-sRes]);
   });
 
   const wb = XLSX.utils.book_new();
