@@ -131,6 +131,10 @@ select,input[type=text],input[type=number],input[type=date]{font-family:'IBM Ple
 .status-select{font-size:11px;padding:3px 22px 3px 8px;border-radius:20px;font-weight:500;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 7px center;background-size:8px;min-width:122px;width:auto;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23635C54'/></svg>");}
 .geliefert-check{display:block;font-size:10px;color:var(--ink-soft);margin-top:4px;cursor:pointer;user-select:none;}
 .geliefert-check input{margin-right:3px;vertical-align:middle;}
+.lief-btn{display:block;width:100%;margin-top:4px;font-size:10px;padding:2px 6px;border-radius:10px;border:1px solid var(--line);background:#FBFAF5;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap;}
+.lief-btn:hover{border-color:var(--brand);color:var(--brand-dark);}
+.lief-btn.lief-partial{background:var(--amber-bg);color:#7A4F0F;border-color:transparent;}
+.lief-btn.lief-complete{background:var(--green-bg);color:#22432D;border-color:transparent;}
 .del-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;}
 .del-btn:hover{color:var(--rust);}
 .add-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;}
@@ -695,6 +699,10 @@ async function loadSeasonData(id){
     if(o.status==='Geliefert'){ o.status='Fix'; o.geliefert=true; }
     if(o.geliefert===undefined) o.geliefert=false;
     if(!o.groupId) o.groupId = String(o.id);
+    if(!o.lieferungen) o.lieferungen = [];
+    if(o.geliefert===true && o.lieferungen.length===0){
+      o.lieferungen.push({datum:o.datum||'', menge:o.menge});
+    }
   });
   activeSorteId = sorten[0] ? sorten[0].id : null;
 }
@@ -1034,14 +1042,15 @@ function renderOrderCard(){
         <button class="add-qline-btn" onclick="addQualityLineToGroup('${o.groupId}')" title="weitere Qualität für diesen Kunden hinzufügen">+ Qualität</button>
       </td>`:''}
       <td><select class="cell-edit qual-cell" onchange="updateOrder(${o.id},'qualitaet',this.value)">${qualOptionsHtml(o.qualitaet)}</select></td>
-      <td><input class="cell-edit num-edit" type="number" min="0" value="${o.menge}" onchange="updateOrder(${o.id},'menge',this.value)"></td>
+      <td><input class="cell-edit num-edit" type="number" min="0" value="${o.menge}" onchange="updateOrder(${o.id},'menge',this.value)">
+        ${o.status==='Fix'?renderLieferStatus(o):''}
+      </td>
       ${idx===0?`<td rowspan="${g.length}">
         <select class="cell-edit status-select status-${o.status}" onchange="setStatusGroup('${o.groupId}', this.value)">
           <option value="Reserviert" ${o.status==='Reserviert'?'selected':''}>Reserviert</option>
           <option value="Fix" ${o.status==='Fix'?'selected':''}>Fix / Auftrag</option>
           <option value="Warteliste" ${o.status==='Warteliste'?'selected':''}>Warteliste</option>
         </select>
-        ${o.status==='Fix'?`<label class="geliefert-check"><input type="checkbox" ${o.geliefert?'checked':''} onchange="toggleGelifertGroup('${o.groupId}')"> geliefert</label>`:''}
       </td>`:''}
       ${idx===0?`<td rowspan="${g.length}"><input class="cell-edit" type="date" value="${o.datum||''}" onchange="updateOrderGroup('${o.groupId}','datum',this.value)"></td>`:''}
       ${idx===0?`<td rowspan="${g.length}"><input class="cell-edit notiz-cell" type="text" value="${o.notiz||''}" title="${(o.notiz||'').replace(/"/g,'&quot;')}" onchange="updateOrderGroup('${o.groupId}','notiz',this.value)"></td>`:''}
@@ -1189,12 +1198,87 @@ function toggleGeliefert(id){
   order.geliefert = !order.geliefert;
   renderSorteCard(); renderOrderCard(); save();
 }
-function toggleGelifertGroup(groupId){
-  const lines = orders.filter(o=>o.groupId===groupId);
-  const next = !lines[0].geliefert;
-  lines.forEach(o=>o.geliefert=next);
-  renderSorteCard(); renderOrderCard(); save();
+function deliveredSum(o){
+  return (o.lieferungen||[]).reduce((a,l)=>a+Number(l.menge||0),0);
 }
+function renderLieferStatus(o){
+  const sum = deliveredSum(o);
+  const total = Number(o.menge)||0;
+  let label;
+  if(sum <= 0) label = '+ Lieferung erfassen';
+  else if(sum >= total) label = '✓ vollständig geliefert';
+  else label = `${sum.toLocaleString('de-AT')} / ${total.toLocaleString('de-AT')} geliefert`;
+  return `<button type="button" class="lief-btn${sum>=total && total>0?' lief-complete':sum>0?' lief-partial':''}" onclick="openLieferungenModal(${o.id})">${label}</button>`;
+}
+
+function openLieferungenModal(orderId){
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'liefOverlay';
+  overlay.innerHTML = `<div class="confirm-box backup-box" id="liefModalContent"></div>`;
+  document.body.appendChild(overlay);
+  renderLieferungenModalContent(orderId);
+}
+function closeLieferungenModal(){
+  const overlay = document.getElementById('liefOverlay');
+  if(overlay) document.body.removeChild(overlay);
+}
+function renderLieferungenModalContent(orderId){
+  const o = orders.find(x=>x.id===orderId);
+  const box = document.getElementById('liefModalContent');
+  if(!o || !box) return;
+  const sum = deliveredSum(o);
+  const total = Number(o.menge)||0;
+  const rest = total - sum;
+  const lieferungen = (o.lieferungen||[]).slice().sort((a,b)=>(a.datum||'').localeCompare(b.datum||''));
+  box.innerHTML = `
+    <p><strong>Teillieferungen – ${o.kunde} · ${o.qualitaet}</strong></p>
+    <p class="backup-hint">Gesamtmenge: ${total.toLocaleString('de-AT')} Stk. · bisher geliefert: ${sum.toLocaleString('de-AT')} · noch offen: <span class="${rest<0?'warn':''}">${rest.toLocaleString('de-AT')}</span></p>
+    <table style="margin-bottom:10px">
+      <thead><tr><th>Datum</th><th style="text-align:right">Menge</th><th></th></tr></thead>
+      <tbody>
+        ${lieferungen.length ? (o.lieferungen||[]).map((l,i)=>`
+          <tr><td>${l.datum||''}</td><td class="num">${Number(l.menge).toLocaleString('de-AT')}</td>
+          <td><button class="del-btn" onclick="deleteLieferung(${orderId},${i})" aria-label="Löschen">×</button></td></tr>
+        `).join('') : `<tr><td colspan="3" class="rest-empty">Noch keine Teillieferung erfasst</td></tr>`}
+      </tbody>
+    </table>
+    <div class="backup-actions-modal" style="justify-content:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:0">
+      <input type="date" id="liefDatum" style="max-width:150px">
+      <input type="number" id="liefMenge" placeholder="Menge" min="0" style="max-width:110px" value="${rest>0?rest:''}">
+      <button class="add-btn" onclick="addLieferung(${orderId})">+ Lieferung hinzufügen</button>
+    </div>
+    <div class="backup-actions-modal">
+      <button class="confirm-no" onclick="closeLieferungenModal()">Schließen</button>
+    </div>
+  `;
+  const di = document.getElementById('liefDatum');
+  if(di && !di.value){
+    const t = new Date();
+    di.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+}
+function addLieferung(orderId){
+  const o = orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const datum = document.getElementById('liefDatum').value;
+  const menge = Number(document.getElementById('liefMenge').value);
+  if(!menge){ return; }
+  if(!o.lieferungen) o.lieferungen = [];
+  o.lieferungen.push({datum, menge});
+  o.geliefert = deliveredSum(o) >= Number(o.menge);
+  renderSorteCard(); renderOrderCard(); save();
+  renderLieferungenModalContent(orderId);
+}
+function deleteLieferung(orderId, index){
+  const o = orders.find(x=>x.id===orderId);
+  if(!o || !o.lieferungen) return;
+  o.lieferungen.splice(index, 1);
+  o.geliefert = deliveredSum(o) >= Number(o.menge);
+  renderSorteCard(); renderOrderCard(); save();
+  renderLieferungenModalContent(orderId);
+}
+
 function updateOrder(id, field, value){
   const order = orders.find(o=>o.id===id);
   if(!order) return;
@@ -1215,7 +1299,7 @@ function addQualityLineToGroup(groupId){
   orders.push({
     id: Date.now(), sorteId: ref.sorteId, groupId,
     kunde: ref.kunde, qualitaet: freieQual, menge: 0,
-    status: ref.status, geliefert: ref.geliefert,
+    status: ref.status, geliefert: ref.geliefert, lieferungen: [],
     datum: ref.datum, notiz: ref.notiz
   });
   renderSorteCard(); renderOrderCard(); save();
@@ -1256,7 +1340,7 @@ function addOrder(){
     if(!menge) return;
     orders.push({
       id: Date.now() + i, sorteId: sorte.id, groupId,
-      kunde, qualitaet, menge, status, geliefert:false, datum, notiz
+      kunde, qualitaet, menge, status, geliefert:false, lieferungen: [], datum, notiz
     });
     count++;
   });
@@ -1528,6 +1612,10 @@ function importAllBackup(file){
       seasonOrders.forEach(o=>{
         if(o.geliefert===undefined) o.geliefert=false;
         if(!o.groupId) o.groupId = String(o.id);
+        if(!o.lieferungen) o.lieferungen = [];
+        if(o.geliefert===true && o.lieferungen.length===0){
+          o.lieferungen.push({datum:o.datum||'', menge:o.menge});
+        }
       });
       if(window.storage && cryptoKey){
         try{ await writeEncrypted(seasonSortenKey(s.id), seasonSorten, cryptoKey); }catch(e){}
