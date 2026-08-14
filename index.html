@@ -1336,18 +1336,25 @@ function addOrder(){
   const groupId = 'g' + Date.now();
   let count = 0;
   if(!kunde){ setStatus('Kunde ist nötig'); return; }
+  const bestehendeAuftragsnr = status==='Fix'
+    ? (orders.find(o=>o.kunde===kunde && o.auftragsnummer)||{}).auftragsnummer || ''
+    : '';
   lines.forEach((line, i)=>{
     const qualitaet = line.querySelector('.newQualSelect').value;
     const menge = Number(line.querySelector('.newMengeInput').value);
     if(!menge) return;
     orders.push({
       id: Date.now() + i, sorteId: sorte.id, groupId,
-      kunde, qualitaet, menge, status, geliefert:false, lieferungen: [], datum, notiz
+      kunde, qualitaet, menge, status, geliefert:false, lieferungen: [],
+      auftragsnummer: bestehendeAuftragsnr, datum, notiz
     });
     count++;
   });
   if(!count){ setStatus('Mindestens eine Qualität mit Menge ist nötig'); return; }
   renderSorteCard(); renderOrderCard(); save();
+  if(bestehendeAuftragsnr){
+    setStatus(`Auftragsnr. ${bestehendeAuftragsnr} automatisch übernommen (Kunde hat sie schon bei einer anderen Sorte).`);
+  }
 }
 
 function norm(s){ return String(s||'').trim().toLowerCase(); }
